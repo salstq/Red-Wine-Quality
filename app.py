@@ -18,9 +18,13 @@ st.write("Aplikasi ini menampilkan proses analisis regresi linear berganda untuk
 def load_data():
     df = pd.read_csv("winequality-red.csv")
     df = df.drop_duplicates()
+    df.columns = df.columns.str.strip()  # hapus spasi di awal/akhir nama kolom
     return df
 
-df_orig = load_data()  # simpan dataset asli, tidak diubah di menu lain
+df_orig = load_data()  # simpan dataset asli
+
+# Debug: tampilkan kolom untuk memastikan 'quality' ada
+st.write("Kolom asli CSV:", df_orig.columns.tolist())
 
 # =====================
 # Sidebar
@@ -86,7 +90,6 @@ elif menu == "Preprocessing":
 elif menu == "Regression Model":
     st.subheader("Model Regresi Linear Berganda (OLS)")
 
-    # Gunakan dataset asli
     X = df_orig.drop("quality", axis=1)
     y = df_orig["quality"]
     X_const = sm.add_constant(X)
@@ -115,7 +118,6 @@ elif menu == "Regression Model":
 elif menu == "Prediction":
     st.subheader("Prediksi Kualitas Wine")
 
-    # Gunakan dataset asli
     X = df_orig.drop("quality", axis=1)
     y = df_orig["quality"]
     X_const = sm.add_constant(X)
