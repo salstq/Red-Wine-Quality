@@ -16,9 +16,10 @@ st.write("Aplikasi ini menampilkan proses analisis regresi linear berganda untuk
 # =====================
 @st.cache_data
 def load_data():
-    df = pd.read_csv("winequality-red.csv")
+    # Use sep=';' if your CSV uses semicolons
+    df = pd.read_csv("winequality-red.csv", sep=';') 
     df = df.drop_duplicates()
-    df.columns = df.columns.str.strip()  # hapus spasi di awal/akhir nama kolom
+    df.columns = df.columns.str.strip().str.replace('"', '') # Strip whitespace and quotes
     return df
 
 df_orig = load_data()  # simpan dataset asli
