@@ -20,7 +20,7 @@ def load_data():
     df = df.drop_duplicates()
     return df
 
-df = load_data()
+df_orig = load_data()  # simpan dataset asli, tidak diubah di menu lain
 
 # =====================
 # Sidebar
@@ -39,11 +39,11 @@ menu = st.sidebar.radio("Pilih Menu", [
 # =====================
 if menu == "Dataset":
     st.subheader("Dataset Wine Quality")
-    st.write("Jumlah data:", df.shape[0])
-    st.dataframe(df.head())
+    st.write("Jumlah data:", df_orig.shape[0])
+    st.dataframe(df_orig.head())
 
     st.subheader("Statistik Deskriptif")
-    st.dataframe(df.describe())
+    st.dataframe(df_orig.describe())
 
 # =====================
 # EDA
@@ -51,17 +51,17 @@ if menu == "Dataset":
 elif menu == "EDA":
     st.subheader("Distribusi Quality")
     fig, ax = plt.subplots()
-    sns.countplot(x="quality", data=df, ax=ax)
+    sns.countplot(x="quality", data=df_orig, ax=ax)
     st.pyplot(fig)
 
     st.subheader("Heatmap Korelasi")
     fig, ax = plt.subplots(figsize=(10, 6))
-    sns.heatmap(df.corr(), cmap="coolwarm", ax=ax)
+    sns.heatmap(df_orig.corr(), cmap="coolwarm", ax=ax)
     st.pyplot(fig)
 
     st.subheader("Hubungan Alcohol vs Quality")
     fig, ax = plt.subplots()
-    sns.scatterplot(x="alcohol", y="quality", data=df, ax=ax)
+    sns.scatterplot(x="alcohol", y="quality", data=df_orig, ax=ax)
     st.pyplot(fig)
 
 # =====================
@@ -70,15 +70,15 @@ elif menu == "EDA":
 elif menu == "Preprocessing":
     st.subheader("Preprocessing Data")
 
-    X = df.drop("quality", axis=1)
-    y = df["quality"]
+    X = df_orig.drop("quality", axis=1)
+    y = df_orig["quality"]
 
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
-    X_scaled = pd.DataFrame(X_scaled, columns=X.columns)
+    X_scaled_df = pd.DataFrame(X_scaled, columns=X.columns)
 
     st.write("Fitur setelah StandardScaler:")
-    st.dataframe(X_scaled.head())
+    st.dataframe(X_scaled_df.head())
 
 # =====================
 # Regression Model
@@ -86,8 +86,9 @@ elif menu == "Preprocessing":
 elif menu == "Regression Model":
     st.subheader("Model Regresi Linear Berganda (OLS)")
 
-    X = df.drop("quality", axis=1)
-    y = df["quality"]
+    # Gunakan dataset asli
+    X = df_orig.drop("quality", axis=1)
+    y = df_orig["quality"]
     X_const = sm.add_constant(X)
 
     model = sm.OLS(y, X_const).fit()
@@ -114,15 +115,16 @@ elif menu == "Regression Model":
 elif menu == "Prediction":
     st.subheader("Prediksi Kualitas Wine")
 
-    X = df.drop("quality", axis=1)
-    y = df["quality"]
+    # Gunakan dataset asli
+    X = df_orig.drop("quality", axis=1)
+    y = df_orig["quality"]
     X_const = sm.add_constant(X)
     model = sm.OLS(y, X_const).fit()
 
     st.write("Masukkan nilai fitur wine:")
     input_data = {}
     for col in X.columns:
-        input_data[col] = st.number_input(col, float(df[col].min()), float(df[col].max()), float(df[col].mean()))
+        input_data[col] = st.number_input(col, float(df_orig[col].min()), float(df_orig[col].max()), float(df_orig[col].mean()))
 
     input_df = pd.DataFrame([input_data])
     input_df_const = sm.add_constant(input_df)
