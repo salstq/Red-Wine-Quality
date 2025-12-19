@@ -109,23 +109,27 @@ elif menu == "Regression Model":
     st.write("### Tabel Koefisien Regresi")
     # Mengambil hasil summary koefisien ke dalam DataFrame
     coef_df = pd.DataFrame({
-        "Coefficient": model.params,
-        "Std Error": model.bse,
-        "t-values": model.tvalues,
-        "P-values": model.pvalues.round(4)
-    })
-    st.table(coef_df) # Menggunakan table agar statis dan rapi
+        "Feature": model.params.index,
+        "Coefficient": model.params.value,
+        "Std Error": model.bse.values,
+        "t-values": model.tvalues.values,
+        "P-values": model.pvalues.values
+    }).set_index("Feature")
+    st.table(coef_df.style.format("{:.4f}")) # Menggunakan table agar statis dan rapi
 
     # 3. Analisis Residual (Visualisasi tetap dipertahankan)
     st.write("### Analisis Residual")
     y_hat = model.predict(X_const)
     residual = y - y_hat
 
+    st.write("### 📉 Residual Plot")
+    y_hat = model.predict(X_const)
+    residual = y - y_hat
     fig, ax = plt.subplots(figsize=(10, 4))
-    ax.scatter(y_hat, residual, alpha=0.5, color='royalblue')
+    ax.scatter(y_hat, residual, alpha=0.4, color='teal')
     ax.axhline(0, linestyle="--", color='red')
-    ax.set_xlabel("Predicted Quality")
-    ax.set_ylabel("Residuals")
+    ax.set_xlabel("Predicted")
+    ax.set_ylabel("Residual")
     st.pyplot(fig)
 
     # Opsi: Jika masih butuh melihat detail teknis asli
