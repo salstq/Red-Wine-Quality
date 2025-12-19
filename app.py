@@ -6,132 +6,99 @@ import seaborn as sns
 import statsmodels.api as sm
 from sklearn.preprocessing import StandardScaler
 
-st.set_page_config(page_title="Wine Quality Regression", layout="wide")
+# Konfigurasi Halaman
+st.set_page_config(page_title="Wine Quality Analyzer", layout="wide", initial_sidebar_state="expanded")
 
-st.title("🍷 Wine Quality Prediction – Linear Regression (OLS)")
-st.write("Aplikasi ini menampilkan proses analisis regresi linear berganda untuk memprediksi kualitas wine berdasarkan karakteristik kimia.")
+# Custom CSS untuk mempercantik tampilan
+st.markdown("""
+    <style>
+    .main {
+        background-color: #f5f7f9;
+    }
+    .stMetric {
+        background-color: #ffffff;
+        padding: 15px;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
 # =====================
 # Load Data
 # =====================
 @st.cache_data
 def load_data():
-    # Use sep=';' if your CSV uses semicolons
-    df = pd.read_csv("winequality-red.csv", sep=';') 
+    # Menggunakan sep=';' karena dataset wine quality UCI biasanya memakai semicolon
+    try:
+        df = pd.read_csv("winequality-red.csv", sep=';')
+        if df.shape[1] <= 1: # Jika gagal deteksi kolom, coba comma
+            df = pd.read_csv("winequality-red.csv", sep=',')
+    except:
+        # Fallback dummy data jika file tidak ditemukan saat testing
+        return pd.DataFrame()
+        
     df = df.drop_duplicates()
-    df.columns = df.columns.str.strip().str.replace('"', '') # Strip whitespace and quotes
+    df.columns = df.columns.str.strip().str.replace('"', '')
     return df
 
-df_orig = load_data()  # simpan dataset asli
-
-# Debug: tampilkan kolom untuk memastikan 'quality' ada
-st.write("Kolom asli CSV:", df_orig.columns.tolist())
+df_orig = load_data()
 
 # =====================
-# Sidebar
+# Sidebar Layout
 # =====================
-st.sidebar.header("Navigasi")
-menu = st.sidebar.radio("Pilih Menu", [
-    "Dataset",
-    "EDA",
-    "Preprocessing",
-    "Regression Model",
-    "Prediction"
+st.sidebar.image("https://www.svgrepo.com/show/275331/wine-glass-wine.svg", width=100)
+st.sidebar.title("Navigation")
+menu = st.sidebar.radio("Go to:", [
+    "📊 Dashboard Dataset",
+    "🔍 Exploratory Data Analysis",
+    "⚙️ Preprocessing",
+    "🤖 Regression Model",
+    "🍷 Predict Quality"
 ])
 
-# =====================
-# Dataset
-# =====================
-if menu == "Dataset":
-    st.subheader("Dataset Wine Quality")
-    st.write("Jumlah data:", df_orig.shape[0])
-    st.dataframe(df_orig.head())
-
-    st.subheader("Statistik Deskriptif")
-    st.dataframe(df_orig.describe())
+st.sidebar.divider()
+st.sidebar.info("Aplikasi ini menggunakan Ordinary Least Squares (OLS) untuk analisis regresi.")
 
 # =====================
-# EDA
+# Main Logic
 # =====================
-elif menu == "EDA":
-    st.subheader("Distribusi Quality")
-    fig, ax = plt.subplots()
-    sns.countplot(x="quality", data=df_orig, ax=ax)
-    st.pyplot(fig)
 
-    st.subheader("Heatmap Korelasi")
-    fig, ax = plt.subplots(figsize=(10, 6))
-    sns.heatmap(df_orig.corr(), cmap="coolwarm", ax=ax)
-    st.pyplot(fig)
+if df_orig.empty:
+    st.error("File 'winequality-red.csv' tidak ditemukan. Pastikan file berada di folder yang sama.")
+else:
+    # 1. DATASET
+    if menu == "📊 Dashboard Dataset":
+        st.title("📊 Dataset Overview")
+        
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Total Baris", df_orig.shape[0])
+        col2.metric("Total Fitur", df_orig.shape[1] - 1)
+        col3.metric("Target Variable", "Quality")
 
-    st.subheader("Hubungan Alcohol vs Quality")
-    fig, ax = plt.subplots()
-    sns.scatterplot(x="alcohol", y="quality", data=df_orig, ax=ax)
-    st.pyplot(fig)
+        st.subheader("Cuplikan Data")
+        st.dataframe(df_orig.head(10), use_container_width=True)
 
-# =====================
-# Preprocessing
-# =====================
-elif menu == "Preprocessing":
-    st.subheader("Preprocessing Data")
+        with st.expander("Lihat Statistik Deskriptif"):
+            st.table(df_orig.describe().T)
 
-    X = df_orig.drop("quality", axis=1)
-    y = df_orig["quality"]
-
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
-    X_scaled_df = pd.DataFrame(X_scaled, columns=X.columns)
-
-    st.write("Fitur setelah StandardScaler:")
-    st.dataframe(X_scaled_df.head())
-
-# =====================
-# Regression Model
-# =====================
-elif menu == "Regression Model":
-    st.subheader("Model Regresi Linear Berganda (OLS)")
-
-    X = df_orig.drop("quality", axis=1)
-    y = df_orig["quality"]
-    X_const = sm.add_constant(X)
-
-    model = sm.OLS(y, X_const).fit()
-
-    st.write("**R-squared:**", round(model.rsquared, 3))
-    st.write("**Adjusted R-squared:**", round(model.rsquared_adj, 3))
-
-    st.text(model.summary())
-
-    st.subheader("Residual Plot")
-    y_hat = model.predict(X_const)
-    residual = y - y_hat
-
-    fig, ax = plt.subplots()
-    ax.scatter(y_hat, residual, alpha=0.5)
-    ax.axhline(0, linestyle="--")
-    ax.set_xlabel("Predicted")
-    ax.set_ylabel("Residual")
-    st.pyplot(fig)
-
-# =====================
-# Prediction
-# =====================
-elif menu == "Prediction":
-    st.subheader("Prediksi Kualitas Wine")
-
-    X = df_orig.drop("quality", axis=1)
-    y = df_orig["quality"]
-    X_const = sm.add_constant(X)
-    model = sm.OLS(y, X_const).fit()
-
-    st.write("Masukkan nilai fitur wine:")
-    input_data = {}
-    for col in X.columns:
-        input_data[col] = st.number_input(col, float(df_orig[col].min()), float(df_orig[col].max()), float(df_orig[col].mean()))
-
-    input_df = pd.DataFrame([input_data])
-    input_df_const = sm.add_constant(input_df)
-
-    if st.button("Prediksi Quality"):
-        prediction = model.predict(input_df_const)
-        st.success(f"Prediksi Kualitas Wine: {round(prediction.iloc[0], 2)}")
+    # 2. EDA
+    elif menu == "🔍 Exploratory Data Analysis":
+        st.title("🔍 Exploratory Data Analysis")
+        
+        tab1, tab2 = st.tabs(["Univariate Analysis", "Bivariate Analysis"])
+        
+        with tab1:
+            st.subheader("Distribusi Target (Quality)")
+            fig, ax = plt.subplots(figsize=(8, 4))
+            sns.countplot(x="quality", data=df_orig, palette="viridis", ax=ax)
+            st.pyplot(fig)
+            
+        with tab2:
+            st.subheader("Korelasi Antar Fitur")
+            fig, ax = plt.subplots(figsize=(10, 8))
+            mask = np.triu(np.ones_like(df_orig.corr()))
+            sns.heatmap(df_orig.corr(), annot=True, fmt=".2f", cmap="RdBu", mask=mask, ax=ax)
+            st.pyplot(fig)
+            
+            st.subheader("Hubungan Fitur vs
