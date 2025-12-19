@@ -101,4 +101,101 @@ else:
             sns.heatmap(df_orig.corr(), annot=True, fmt=".2f", cmap="RdBu", mask=mask, ax=ax)
             st.pyplot(fig)
             
-            st.subheader("Hubungan Fitur vs
+            st.subheader("Hubungan Fitur vs Quality")
+            feature = st.selectbox("Pilih fitur untuk dibandingkan:", df_orig.columns[:-1])
+            fig, ax = plt.subplots()
+            sns.boxplot(x="quality", y=feature, data=df_orig, palette="magma", ax=ax)
+            st.pyplot(fig)
+
+    # 3. PREPROCESSING
+    elif menu == "⚙️ Preprocessing":
+        st.title("⚙️ Data Preprocessing")
+        st.write("Langkah: Pemisahan Fitur, Target, dan Scaling menggunakan `StandardScaler`.")
+        
+        X = df_orig.drop("quality", axis=1)
+        scaler = StandardScaler()
+        X_scaled = pd.DataFrame(scaler.fit_transform(X), columns=X.columns)
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            st.write("**Sebelum Scaling (Original)**")
+            st.dataframe(X.head())
+        with col2:
+            st.write("**Sesudah Scaling (Z-Score)**")
+            st.dataframe(X_scaled.head())
+
+    # 4. REGRESSION MODEL
+    elif menu == "🤖 Regression Model":
+        st.title("🤖 Linear Regression (OLS)")
+        
+        X = df_orig.drop("quality", axis=1)
+        y = df_orig["quality"]
+        X_const = sm.add_constant(X)
+        model = sm.OLS(y, X_const).fit()
+
+        # Metrics Row
+        c1, c2, c3 = st.columns(3)
+        c1.metric("R-Squared", f"{model.rsquared:.3f}")
+        c2.metric("Adj. R-Squared", f"{model.rsquared_adj:.3f}")
+        c3.metric("F-Statistic", f"{model.fvalue:.2f}")
+
+        st.subheader("Model Summary")
+        st.text(model.summary().as_text())
+
+        st.subheader("Analisis Residual")
+        y_hat = model.predict(X_const)
+        residual = y - y_hat
+        
+        fig, ax = plt.subplots(figsize=(8, 4))
+        ax.scatter(y_hat, residual, alpha=0.5, color='purple')
+        ax.axhline(0, linestyle="--", color='red')
+        ax.set_xlabel("Predicted Quality")
+        ax.set_ylabel("Residuals")
+        st.pyplot(fig)
+
+    # 5. PREDICTION
+    elif menu == "🍷 Predict Quality":
+        st.title("🍷 Wine Quality Predictor")
+        st.write("Gunakan slider di bawah untuk mengatur nilai karakteristik kimia wine.")
+
+        X = df_orig.drop("quality", axis=1)
+        y = df_orig["quality"]
+        X_const = sm.add_constant(X)
+        model = sm.OLS(y, X_const).fit()
+
+        # Buat form input yang rapi dalam kolom
+        with st.form("prediction_form"):
+            cols = st.columns(3)
+            input_data = {}
+            
+            for i, col in enumerate(X.columns):
+                with cols[i % 3]:
+                    input_data[col] = st.slider(
+                        label=col,
+                        min_value=float(df_orig[col].min()),
+                        max_value=float(df_orig[col].max()),
+                        value=float(df_orig[col].mean())
+                    )
+            
+            submitted = st.form_submit_button("Hitung Prediksi Kualitas")
+
+        if submitted:
+            input_df = pd.DataFrame([input_data])
+            # Tambahkan konstanta secara manual karena ini data baru satu baris
+            input_df.insert(0, 'const', 1.0)
+            
+            prediction = model.predict(input_df)
+            
+            st.divider()
+            res_col1, res_col2 = st.columns([1, 2])
+            with res_col1:
+                st.write("### Hasil Prediksi:")
+                score = round(prediction.iloc[0], 2)
+                st.title(f"⭐ {score}")
+            with res_col2:
+                if score >= 6.5:
+                    st.success("Kualitas: **EXCELLENT** (High Quality)")
+                elif score >= 5.5:
+                    st.info("Kualitas: **AVERAGE** (Good Enough)")
+                else:
+                    st.warning("Kualitas: **POOR** (Low Quality)")
